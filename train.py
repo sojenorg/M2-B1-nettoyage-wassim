@@ -1,7 +1,7 @@
 """Entraînement du modèle d'annulation v2 — Escale Atlantique (mission FastIA).
 
 Démarche (cf. RESULTATS.md) :
-  1. lecture SQL de l'historique, avec la jointure sur `hotels` ;
+  1. lecture SQL de l'historique, avec la jointure sur `hotels`, puis nettoyage (cf. nettoyage.py) ;
   2. découpage temporel : les TEST_MONTHS derniers mois d'arrivée forment le jeu de test ;
   3. pipeline : variables calculées → préparation → régression logistique ;
   4. réglage de C par validation croisée temporelle (TimeSeriesSplit) ;
@@ -47,13 +47,14 @@ from features import (
     ajouter_variables,
 )
 from model.train_baseline import build_pipeline as build_v1
+from nettoyage import nettoyer
 
 ROOT = Path(__file__).resolve().parent
 MODEL_DIR = ROOT / "model"
 TEST_MONTHS = 4
 TARGET = "is_canceled"
-# Passe à "2.1.0" quand le nettoyage est branché (tâche 5) : le modèle v2.0.0 reste intact pour la comparaison
-VERSION = "2.0.0"
+# 2.1.0 : entraîné sur les données nettoyées. Le modèle v2.0.0 reste intact pour la comparaison
+VERSION = "2.1.0"
 
 load_dotenv(ROOT / ".env")
 
@@ -174,7 +175,8 @@ def evaluate(model, X: pd.DataFrame, y: pd.Series) -> dict:
 def main() -> None:
     engine = create_engine(os.environ["DATABASE_URL"])
     df = load_data(engine)
-    # TODO (tâche 5) : nettoyer df ici avec nettoyage.nettoyer(), et afficher son compte rendu
+    df, compte_rendu = nettoyer(df)
+    print("Nettoyage :\n", compte_rendu.to_string(index=False))
     train, test = split_train_test(df)
     print(f"Entraînement : {len(train)} réservations | test : {len(test)} réservations")
 
